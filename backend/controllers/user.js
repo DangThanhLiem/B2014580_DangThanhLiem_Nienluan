@@ -5,14 +5,15 @@ const jwt = require('jsonwebtoken')
 const sendMail = require('../ultils/sendMail')
 const crypto = require('crypto')
 
+// Controller để đăng ký người dùng mới
 const register = asyncHandler(async(req,res)=>{
     const {email,password,firstname,lastname} =req.body
+
     if(!email || !password || !lastname || !firstname)
     return res.status(400).json({
         sucess: false,
         mes:'Missing Inputs'
-    })
-    
+    })   
     const user = await User.findOne({email})
     if(user)
         throw new Error('User has existed!')
@@ -24,9 +25,8 @@ const register = asyncHandler(async(req,res)=>{
         })
     }
 })
+// Controller để đăng nhập
 
-//Refresh token => Cap moi access token
-//Access token => Xac thuc va phan quyen nguoi dung 
 const login = asyncHandler(async(req,res)=>{
     const {email,password} =req.body
     if(!email || !password )
@@ -59,7 +59,7 @@ const login = asyncHandler(async(req,res)=>{
 
 })
 
-
+// Controller để lấy thông tin người dùng hiện tại
 const getCurrent= asyncHandler(async(req,res)=>{
     const {_id} = req.user
     const user = await User.findById(_id).select('-refreshToken -password -role')
@@ -68,6 +68,7 @@ const getCurrent= asyncHandler(async(req,res)=>{
         rs: user ? user :'User is not found'
     })  
 })
+// Controller để làm mới access token
 const refreshAccessToken = asyncHandler(async(req,res) =>{
     //lay token tu cookies
     const cookie = req.cookies
@@ -83,7 +84,7 @@ const refreshAccessToken = asyncHandler(async(req,res) =>{
             newAccessToken:response ? generateAccessToken( response._id,response.role):'Refresh token not matched'
         })
 })
-
+// Controller để đăng xuất
 const logout = asyncHandler(async(req,res) =>{
     //lay token tu cookies
     const cookie = req.cookies
@@ -108,7 +109,7 @@ const logout = asyncHandler(async(req,res) =>{
     //Client gui api kem token
     //Check token co giong token ma server gui khong mail hay khong
     //Change password 
-
+// Controller để quên mật khẩu
 const forgotPassword = asyncHandler(async(req,res)=>{
     const {email} = req.query
     if(!email) throw new Error(' Missing email')
@@ -131,6 +132,7 @@ const forgotPassword = asyncHandler(async(req,res)=>{
         rs
     })
 })
+// Controller để đặt lại mật khẩu
 const resetPassword = asyncHandler(async(req,res)=>{
     const {password, token}=req.body
     if(!password || !token) throw new Error(' Missing inputs')
@@ -147,7 +149,7 @@ const resetPassword = asyncHandler(async(req,res)=>{
         mes: user ? 'Updated password' : 'Something went wrong'
     })
 })
-
+// Controller để lấy danh sách người dùng
 const getUsers = asyncHandler(async(req,res)=>{
     const response = await User.find().select('-refreshToken -password -role')
     return res.status(200).json({
@@ -155,6 +157,7 @@ const getUsers = asyncHandler(async(req,res)=>{
         users: response
     })
 })
+// Controller để xóa người dùng
 const deleteUser = asyncHandler(async(req,res)=>{
     const {_id} = req.query
     if(!_id) throw new Error(' Missing inputs')
@@ -164,6 +167,7 @@ const deleteUser = asyncHandler(async(req,res)=>{
         deleteUser: response ? `User with email ${response.email} deleted` : 'No user delete'
     })
 })
+// Controller để cập nhật thông tin người dùng bằng id
 const updateUser = asyncHandler(async(req,res)=>{
     const {_id} = req.user
     if(!_id || Object.keys(req.body).length === 0) throw new Error(' Missing inputs')
@@ -173,6 +177,7 @@ const updateUser = asyncHandler(async(req,res)=>{
         updateUser: response ? response: 'Something went wrong'
     })
 })
+// Controller để cập nhật thông tin người dùng bởi admin
 const updateUserByAdmin = asyncHandler(async(req,res)=>{
     const { uid }  = req.params
     if(Object.keys(req.body).length === 0) throw new Error(' Missing inputs')
@@ -182,6 +187,7 @@ const updateUserByAdmin = asyncHandler(async(req,res)=>{
         updateUser: response ? response: 'Something went wrong'
     })
 })
+// Controller để cập nhật địa chỉ người dùng
 const updateUserAddress = asyncHandler(async(req,res)=>{
     const {_id}  = req.user
     if(!req.body.address) throw new Error(' Missing inputs')
@@ -191,34 +197,7 @@ const updateUserAddress = asyncHandler(async(req,res)=>{
         updateUser: response ? response: 'Something went wrong'
     })
 })
-const updateCart = asyncHandler(async(req,res)=>{
-    const {_id}  = req.user
-    const {pid,quantity,color} = req.body
-    if(!pid || !quantity || !color) throw new Error(' Missing inputs')
-    const user = await User.findById(_id).select('cart')
-    const alreadyProduct = user?.cart?.find(el =>el.product.toString() === pid)
-    if(alreadyProduct){
-        if(alreadyProduct.color === color){
-            const response = await User.updateOne({cart: {$elemMatch:alreadyProduct}},{ $set:{"cart.$.quantity":quantity}},{new:true})
-            return res.status(200).json({
-                success:response? true :false,
-                updateUser: response ? response: 'Something went wrong'
-            })
-            }else{
-            const response = await User.findByIdAndUpdate(_id,{$push:{cart:{product:pid,quantity,color}}},{new:true})
-            return res.status(200).json({
-                success:response? true :false,
-                updateUser: response ? response: 'Something went wrong'
-            })
-            }
-    }else{
-        const response = await User.findByIdAndUpdate(_id,{$push:{cart:{product:pid,quantity,color}}},{new:true})
-        return res.status(200).json({
-            success:response? true :false,
-            updateUser: response ? response: 'Something went wrong'
-        })
-    }
-})
+
 
 module.exports ={
     register,
@@ -233,5 +212,5 @@ module.exports ={
     updateUser,
     updateUserByAdmin,
     updateUserAddress,
-    updateCart
+   
 }

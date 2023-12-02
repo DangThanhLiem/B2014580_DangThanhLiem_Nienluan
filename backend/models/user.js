@@ -27,15 +27,10 @@ var userSchema = new mongoose.Schema({
     },
     role:{
         type:String,
+        enum:['user','admin'],
         default:'user',
     },
-    cart:[{
-        product:{type: mongoose.Types.ObjectId,ref: 'Product'},
-        quantity:Number,
-        color:String
-    }],
     address:String,
-    wishlist:[{type: mongoose.Types.ObjectId, ref:'wishlist'}],
     isBlocked:{
         type:Boolean,
         default:false
@@ -44,30 +39,42 @@ var userSchema = new mongoose.Schema({
         type:String,
     },
     passwordChangeAt:{
-        type:String
-    },
-    passwordResetToken:{
-        type:String
+        type:Date
     },
     passwordResetToken:{
         type:String
     },
     passwordResetExpires:{
-        type:String
+        type:Date
     }
 },{timestamps:true
 });
+// firstName: Tên của người dùng 
+// lastName: Họ của người dùng 
+// email: Địa chỉ email của người dùng 
+// mobile: Số điện thoại di động của người dùng 
+// password: Mật khẩu của người dùng 
+// role: Vai trò của người dùng 
+// isBlocked: Trạng thái khóa tài khoản của người dùng 
+// refreshToken: Refresh token của người dùng 
+// passwordChangeAt: Thời điểm người dùng thay đổi mật khẩu gần nhất 
+// passwordResetToken: Mã thông báo để đặt lại mật khẩu của người dùng 
+// passwordResetExpires: Thời gian hết hạn của mã thông báo đặt lại mật khẩu 
+//Access token => Xac thuc va phan quyen nguoi dung 
+// Hàm hash mật khẩu trước khi lưu vào cơ sở dữ liệu
 userSchema.pre('save',async function(next){
     if(!this.isModified('password')){
         next()
     }
-    const salt = bcrypt.genSaltSync(10)
+    const salt = await bcrypt.genSaltSync(10)
     this.password = await bcrypt.hash(this.password,salt)
+    next();
 })
 userSchema.methods = {
     isCorrectPassword:async function(password){
         return await bcrypt.compare(password, this.password)
     },
+    // Hàm hash mã thông báo đặt lại mật khẩu trước khi lưu vào cơ sở dữ liệu
     createPasswordChangedToken: function(){
         const resetToken = crypto.randomBytes(32).toString('hex')
         this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex')
